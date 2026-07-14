@@ -10,7 +10,8 @@ class AgentHouse(TypedDict):
 
 class State(TypedDict):
     messages: Annotated[list, add_messages]
-    plan: str
+    planDescription: str
+    plans: dict[str, str]
     agents: list[AgentHouse]
     webSearch: Annotated[list, add_messages]
     weather: Annotated[list, add_messages]
@@ -18,6 +19,7 @@ class State(TypedDict):
     
 
 class AgentState(BaseModel):
-    plan: str = Field( description="Overall plan for completing the user's request")
-    agents: list[str] = Field( description="List of agents required to execute the plan")
+    planDescription: str = Field( description="Overall plan description for completing the user's request")
+    plans: list[str] = Field(description="List of individual execution plans or steps required for the user's request")
+    agents: list[str] = Field( description="List of agents required to execute the plans")
     normalResponse: str = Field(description="normal response that llm has to generate")

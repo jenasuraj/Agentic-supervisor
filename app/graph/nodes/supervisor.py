@@ -5,14 +5,22 @@ from app.graph.prompts import SUPERVISOR_SYSTEM_PROMPT as SYSTEM_PROMPT
 
 
 
-
 def supervisor(state: State):
+    print("🧠 Supervisor entered")
     response = llm.with_structured_output(AgentState).invoke([
         SystemMessage(content=SYSTEM_PROMPT),
         *state["messages"],
     ])
+    plans = {}
+    for planItem in response.plans:
+        plans[planItem] = "pending"
+    print(f"📋 Supervisor created {len(plans)} plan(s): {list(plans.keys())}")
+    print(f"👥 Supervisor selected agent(s): {response.agents or ['finalNode']}")
+
     if len(response.agents) == 0:
-       return { "plan": response.plan,
+       print("💬 Supervisor answering directly")
+       return { "planDescription": response.planDescription,
+                "plans": plans,
                 "agents": [{}],
                 "messages":[AIMessage(content=response.normalResponse)]
             }
@@ -20,4 +28,7 @@ def supervisor(state: State):
         agentHouse = {}
         for agent in response.agents:
             agentHouse[agent] = False
-        return { "plan": response.plan,"agents": [agentHouse]} 
+        print("✅ Supervisor handoff ready")
+        return { "planDescription": response.planDescription,
+                 "plans": plans,
+                 "agents": [agentHouse]} 

@@ -8,13 +8,17 @@ from app.graph.nodes.rag import rag
 
 
 def router(state:State):
+    print("🧭 Router checking next agent")
     if(len(state["agents"]) == 0):
+        print("🏁 Router -> finalNode")
         return "finalNode"
     else:
         agentHouse = state["agents"][0]
         for agent in agentHouse:
             if(agentHouse[agent] == False):
+                print(f"➡️ Router -> {agent}")
                 return agent
+        print("🏁 Router -> finalNode")
         return "finalNode"
     
 

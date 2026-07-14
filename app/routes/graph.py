@@ -10,11 +10,16 @@ class GraphRequest(BaseModel):
 
 class GraphResponse(BaseModel):
     response: str
-    plan: str | None = None
+    planDescription: str | None = None
+    plans: dict[str, str] | None = None
 
 
 @router.post("/invoke", response_model=GraphResponse)
 def invoke_graph(payload: GraphRequest) -> GraphResponse:
     result = graph.invoke({"messages": [{"role": "user", "content": payload.message}]})
     answer = result["messages"][-1].content
-    return {"response":answer}
+    return {
+        "response": answer,
+        "planDescription": result.get("planDescription"),
+        "plans": result.get("plans"),
+    }

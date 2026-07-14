@@ -5,37 +5,6 @@ from app.graph.prompts import FINAL_AGENT_SYSTEM_PROMPT
 from textwrap import dedent
 
 
-def _message_text(message):
-    if isinstance(message, dict):
-        content = message.get("content", "")
-    else:
-        content = getattr(message, "content", "")
-
-    if isinstance(content, str):
-        return content
-    return str(content)
-
-
-def _format_messages(messages):
-    if not messages:
-        return "None"
-
-    formatted = []
-    for index, message in enumerate(messages, start=1):
-        role = getattr(message, "type", None)
-        if role is None and isinstance(message, dict):
-            role = message.get("role")
-        formatted.append(f"{index}. {role or 'message'}: {_message_text(message)}")
-    return "\n".join(formatted)
-
-
-def _has_requested_agents(state: State):
-    agents = state.get("agents") or []
-    if not agents:
-        return False
-
-    agent_house = agents[0] or {}
-    return any(agent_house.keys())
 
 
 def _agent_observations(state: State):
@@ -57,22 +26,29 @@ def _agent_observations(state: State):
         observations.append(
             f"Agent: {agent_name}\n"
             f"Completed: {completed}\n"
-            f"Observation:\n{_format_messages(messages)}"
+            f"Observation:\n{(messages)}"
         )
 
     return "\n\n".join(observations) if observations else "None"
 
 
+
+
 def finalNode(state: State):
-    if not _has_requested_agents(state):
-        return {"messages": [AIMessage(content=_message_text(state["messages"][-1]))]}
+    print("🏁 Final node entered")
+    if len(state["agents"][0].keys()) == 0:
+        print("💬 Final node returning direct supervisor response")
+        return {"messages": [AIMessage(content=state["messages"][-1].content)]}
 
     final_context = dedent(f"""
-    Supervisor plan:
-    {state.get("plan") or "None"}
+    Supervisor plan description:
+    {state.get("planDescription") or "None"}
+
+    Execution plans:
+    {state.get("plans") or "None"}
 
     Original conversation:
-    {_format_messages(state.get("messages"))}
+    {state.get("messages")}
 
     Specialist observations:
     {_agent_observations(state)}
@@ -85,4 +61,5 @@ def finalNode(state: State):
         HumanMessage(content=final_context),
     ])
 
-    return {"messages": [AIMessage(content=_message_text(response))]}
+    print("✅ Final node completed")
+    return {"messages": [AIMessage(content=response.content)]}
