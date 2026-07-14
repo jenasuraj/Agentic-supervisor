@@ -1,5 +1,3 @@
-# Prod Agentic
-
 ![Prod Agentic Hero](public/img.png)
 
 Prod Agentic is a FastAPI + LangGraph backend that experiments with a supervisor-led multi-agent workflow. A supervisor node reads the user request, creates execution plans, routes work to specialist agents, and then a final node combines the results into one response.
