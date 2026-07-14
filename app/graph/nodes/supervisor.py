@@ -1,6 +1,6 @@
 from app.graph.State import State, AgentState
 from app.graph.llm import llm
-from langchain_core.messages import SystemMessage, AIMessage
+from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
 from app.graph.prompts import SUPERVISOR_SYSTEM_PROMPT as SYSTEM_PROMPT
 
 
@@ -11,24 +11,31 @@ def supervisor(state: State):
         SystemMessage(content=SYSTEM_PROMPT),
         *state["messages"],
     ])
-    plans = {}
+    plans = []
     for planItem in response.plans:
-        plans[planItem] = "pending"
-    print(f"📋 Supervisor created {len(plans)} plan(s): {list(plans.keys())}")
-    print(f"👥 Supervisor selected agent(s): {response.agents or ['finalNode']}")
-
-    if len(response.agents) == 0:
-       print("💬 Supervisor answering directly")
-       return { "planDescription": response.planDescription,
+        payload = {}
+        payload["id"] = planItem.id
+        payload["agent"] = planItem.agent
+        payload["plan"] = planItem.plan
+        payload["status"] = planItem.status
+        plans.append(payload)
+        
+    print("📝 Supervisor plans created:", plans)
+    if len(response.agents) == 0:  # if there is no agents, means there is no plans being created as well (but not strictly true...) 
+        print("💬 Supervisor answering directly")
+        return { 
+                "planDescription": response.planDescription,
                 "plans": plans,
                 "agents": [{}],
-                "messages":[AIMessage(content=response.normalResponse)]
-            }
+                "messages":[AIMessage(content=response.normalResponse)],
+                }
     else:
         agentHouse = {}
         for agent in response.agents:
             agentHouse[agent] = False
         print("✅ Supervisor handoff ready")
-        return { "planDescription": response.planDescription,
-                 "plans": plans,
-                 "agents": [agentHouse]} 
+        return {
+                "planDescription": response.planDescription,
+                "plans": plans,
+                "agents": [agentHouse],
+                } 

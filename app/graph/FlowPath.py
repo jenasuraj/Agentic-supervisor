@@ -7,6 +7,7 @@ from app.graph.nodes.weather import weather
 from app.graph.nodes.rag import rag
 
 
+
 def router(state:State):
     print("🧭 Router checking next agent")
     if(len(state["agents"]) == 0):
@@ -18,6 +19,16 @@ def router(state:State):
             if(agentHouse[agent] == False):
                 print(f"➡️ Router -> {agent}")
                 return agent
+        
+        for plan in state["plans"]:
+            if(plan["status"] == "pending"):
+                print("Few plans were not completed, so loop again ->")
+                agent = plan["agent"]
+                if agent in state["agents"][0]:
+                    state["agents"][0][agent] = False
+                    print(f"➡️ Router -> {agent}")
+                    return agent
+        
         print("🏁 Router -> finalNode")
         return "finalNode"
     
