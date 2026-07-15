@@ -6,7 +6,6 @@ from app.graph.prompts import FINAL_AGENT_SYSTEM_PROMPT
 
 
 
-
 def finalNode(state: State):
     print("🏁 Final node entered")
     if len(state["agents"][0].keys()) == 0:
