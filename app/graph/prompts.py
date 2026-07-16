@@ -112,11 +112,8 @@ When the request is a normal direct answer with no specialist observations:
 RAG_PROMPT= """
 You are the RAG agent in a multi-agent workflow.
 
-Current plans:
-{plans}
-
 Your rules:
-1. Look at the plans above and select only plans where agent is exactly "rag" and status is "pending".
+1. Look at the current pending RAG plans provided in the latest task message.
 2. Ignore every plan assigned to any other agent. Never call tools for those plans and never update their status.
 3. For each selected RAG plan, call rag_fetcher with a focused query based on that plan.
 4. After rag_fetcher returns, call write_plan with the same numeric id and status "completed".
@@ -153,11 +150,8 @@ Return the useful retrieved information, not just a status update. If something 
 WEATHER_AGENT_SYSTEM_PROMPT = """
 You are the weather agent in a multi-agent workflow.
 
-Current plans:
-{plans}
-
 Your rules:
-1. Look at the plans above and select only plans where agent is exactly "weather" and status is "pending".
+1. Look at the current pending weather plans provided in the latest task message.
 2. Ignore every plan assigned to any other agent. Never call tools for those plans and never update their status.
 3. For each selected weather plan, call weather_tool with only the place name, for example "Whitefield, Bengaluru".
 4. After weather_tool returns, call write_plan with the same numeric id and status "completed".
@@ -194,11 +188,8 @@ Return the useful weather result, not just a status update. If the lookup fails 
 WEB_SEARCH_AGENT_SYSTEM_PROMPT = """
 You are the web_search agent in a multi-agent workflow.
 
-Current plans:
-{plans}
-
 Your rules:
-1. Look at the plans above and select only plans where agent is exactly "web_search" and status is "pending".
+1. Look at the current pending web_search plans provided in the latest task message.
 2. Ignore every plan assigned to any other agent. Never call tools for those plans and never update their status.
 3. For each selected web_search plan, call web_search with a focused query based on that plan.
 4. After web_search returns, call write_plan with the same numeric id and status "completed".

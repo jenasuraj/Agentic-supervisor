@@ -1,28 +1,28 @@
 from app.graph.State import State, AgentState
 from app.graph.llm import llm
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain.agents import create_agent
 from langchain.tools import tool
 from app.graph.tools.weather import weather_tool
 from app.graph.prompts import WEATHER_AGENT_SYSTEM_PROMPT as WEATHER_AGENT_SYSTEM_PROMPT
-from langchain_core.prompts import PromptTemplate
 
 
 
 def weather(state: State):
     print("Weather node entered")
     plans = state["plans"]
+    pending_weather_plans = [
+        plan for plan in plans
+        if plan["agent"] == "weather" and plan["status"] == "pending"
+    ]
 
     @tool
     def read_plan():
         """Read only the weather plans assigned by the supervisor."""
         print("Weather agent calling read_plan")
-        weather_plans = [
-            plan for plan in plans
-            if (plan["agent"] == "weather")
-        ]
-        if len(weather_plans) == 0:
+        if len(pending_weather_plans) == 0:
             return "There are no todo plans as of now, please respond normally"
-        return weather_plans
+        return pending_weather_plans
 
     @tool
     def write_plan(id: int, status: str):
@@ -37,22 +37,35 @@ def weather(state: State):
         return f"Can't perform write operation, No weather plan found with id {id}"
 
 
-    prompt_template = PromptTemplate.from_template(WEATHER_AGENT_SYSTEM_PROMPT)
-    formatted_prompt = prompt_template.format(plans=state["plans"])
-
     agent = create_agent(
         model=llm,
-        system_prompt=formatted_prompt,
+        system_prompt=WEATHER_AGENT_SYSTEM_PROMPT,
         tools=[weather_tool, read_plan, write_plan],
     )
 
-    response = agent.invoke({"messages": state["weather"]})
+    agent_messages = [
+        SystemMessage(content=f"""
+        Past weather memory / context:
+        {state["weather"]}
+
+        Current pending weather plans:
+        {pending_weather_plans}
+
+        Important:
+        - Use past memory only as context.
+        - Do not assume a current plan is completed just because a similar old task was completed.
+        - You must complete the current pending weather plans or explain why you cannot.
+        """),
+        HumanMessage(content="Execute the current pending weather plans now."),
+    ]
+    response = agent.invoke({"messages": agent_messages})
+    new_messages = response["messages"][len(agent_messages):]
     agentHouse = state["agents"][0]
     agentHouse["weather"] = True
     print("Weather node completed")
     
     return {
-        "weather": response["messages"],
+        "weather": new_messages,
         "plans": plans,
         "agents": [agentHouse],
     }

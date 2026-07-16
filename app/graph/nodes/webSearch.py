@@ -1,28 +1,27 @@
 from app.graph.State import State, AgentState
 from app.graph.llm import llm
-from langchain_core.messages import AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain.agents import create_agent
 from langchain.tools import tool
 from app.graph.tools.webSearch import web_search
 from app.graph.prompts import WEB_SEARCH_AGENT_SYSTEM_PROMPT as WEB_SEARCH_AGENT_SYSTEM_PROMPT
-from langchain_core.prompts import PromptTemplate
 
 
 def webSearch(state: State):
     print("Web search node entered")
     plans = state["plans"]
+    pending_web_search_plans = [
+        plan for plan in plans
+        if plan["agent"] == "web_search" and plan["status"] == "pending"
+    ]
 
     @tool
     def read_plan():
         """Read only the web_search plans assigned by the supervisor."""
         print("Web search agent calling read_plan")
-        web_search_plans = [
-            plan for plan in plans
-            if (plan["agent"] == "web_search")
-        ]
-        if len(web_search_plans) == 0:
+        if len(pending_web_search_plans) == 0:
             return "There are no todo plans as of now, please respond normally"
-        return web_search_plans
+        return pending_web_search_plans
 
     @tool
     def write_plan(id: int, status: str):
@@ -37,16 +36,29 @@ def webSearch(state: State):
         return f"No web_search plan found with id {id}"
     
 
-    prompt_template = PromptTemplate.from_template(WEB_SEARCH_AGENT_SYSTEM_PROMPT)
-    formatted_prompt = prompt_template.format(plans=state["plans"])
-
     agent = create_agent(
         model=llm,
-        system_prompt=formatted_prompt,
+        system_prompt=WEB_SEARCH_AGENT_SYSTEM_PROMPT,
         tools=[web_search, read_plan, write_plan],
     )
 
-    response = agent.invoke({"messages": state["webSearch"]})
+    agent_messages = [
+    SystemMessage(content=f"""
+    Past web search memory / context:
+    {state["webSearch"]}
+
+    Current pending web_search plans:
+    {pending_web_search_plans}
+
+    Important:
+    - Use past memory only as context.
+    - Do not assume a current plan is completed just because a similar old task was completed.
+    - You must complete the current pending web_search plans or explain why you cannot.
+    """),
+        HumanMessage(content="Execute the current pending web_search plans now."),
+    ]
+    response = agent.invoke({"messages": agent_messages})
+    new_messages = response["messages"][len(agent_messages):]
     # the react agent only takes messages as key and the value must be list of items.
     # str(message)  -> Human-readable output (good for displaying/logging content)
     # repr(message) -> Developer/debug representation (shows actual class like HumanMessage, AIMessage, ToolMessage and full object details)
@@ -59,7 +71,7 @@ def webSearch(state: State):
     agentHouse["web_search"] = True
     print("Web search node completed")
     return {
-        "webSearch": response["messages"],
+        "webSearch": new_messages,
         "plans": plans,
         "agents": [agentHouse],
     }

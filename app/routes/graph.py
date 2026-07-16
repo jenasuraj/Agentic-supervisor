@@ -16,7 +16,8 @@ class GraphResponse(BaseModel):
 
 @router.post("/invoke", response_model=GraphResponse)
 def invoke_graph(payload: GraphRequest):
-    result = graph.invoke({"messages": [{"role": "user", "content": payload.message}]})
+    config = {"configurable": {"thread_id": "session_123"}}
+    result = graph.invoke({"messages": [{"role": "user", "content": payload.message}]},config)
     answer = result["messages"][-1].content
     return {
         "response": answer,
